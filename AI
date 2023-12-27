@@ -1,0 +1,115 @@
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+
+import random
+
+class AIViewBot:
+    MAX_VIDEOS = 10  # Define the maximum number of videos to simulate bot viewing
+
+    def __init__(self):
+        self.youtube = self.create_youtube_service()
+
+    def start(self):
+        # Authenticate with YouTube
+        try:
+            channels_list_request = self.youtube.channels().list(
+                part="contentDetails",
+                mine=True
+            )
+            channel_list_response = channels_list_request.execute()
+            channels = channel_list_response.get("items", [])
+
+            if channels:
+                channel = channels[0]
+                channel_id = channel["id"]
+
+                print("Authenticated with YouTube")
+                print("Channel ID:", channel_id)
+
+                # Run the view bot
+                view_bots = []
+                for _ in range(1000000):  # Add a million view bots
+                    view_bot = self.ViewBot(channel_id, self.MAX_VIDEOS)
+                    view_bots.append(view_bot)
+
+                # Instantiate the mother and father bots
+                mother_bot = self.MotherBot()
+                father_bot = self.FatherBot()
+
+                # Run the mother and father bots
+                mother_bot.start(father_bot, view_bots)
+                father_bot.start()
+            else:
+                print("Unable to authenticate with YouTube. Please check your credentials.")
+        except HttpError as error:
+            print(f"An HTTP error occurred: {error}")
+
+    def create_youtube_service(self):
+        scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+        flow = InstalledAppFlow.from_client_secrets_file(
+            "client_secrets.json",
+            scopes
+        )
+        credentials = flow.run_local_server()
+        return build("youtube", "v3", credentials=credentials)
+
+    class ViewBot:
+        def __init__(self, channel_id, max_videos):
+            self.channel_id = channel_id
+            self.max_videos = max_videos
+            self.ip_address = ""
+
+        def start(self):
+            for _ in range(self.max_videos):
+                self.simulate_bot_viewing()
+
+        def simulate_bot_viewing(self):
+            video_id = self.get_random_video_id()
+            print("Viewing video:", f"https://www.youtube.com/watch?v={video_id}")
+
+            # Determine the viewing duration
+            duration = self.get_random_duration()
+
+            # Simulate viewing the video
+            self.view_video(video_id, duration)
+
+            # Like the video
+            self.like_video(video_id)
+
+            # Subscribe to the channel
+            self.subscribe_channel(self.channel_id)
+
+            # Comment on the video
+            self.comment_on_video(video_id)
+
+            print()
+
+        def get_random_video_id(self):
+            try:
+                playlist_items_list_request = self.youtube.playlistItems().list(
+                    part="snippet,contentDetails",
+                    playlistId=self.channel_id,
+                    maxResults=50
+                )
+                playlist_items_list_response = playlist_items_list_request.execute()
+                playlist_items = playlist_items_list_response.get("items", [])
+
+                if playlist_items:
+                    # Select a random video from the playlist
+                    random_index = random.randint(0, len(playlist_items) - 1)
+                    playlist_item = playlist_items[random_index]
+                    return playlist_item["contentDetails"]["videoId"]
+
+                raise Exception("Unable to fetch videos")
+            except HttpError as error:
+                print(f"An HTTP error occurred: {error}")
+
+        def get_random_duration(self):
+            if random.random() < 0.1:  # 10% chance to view the full video
+                return "full"
+            else:
+                minutes = random.randint(1, 10)
+                seconds = random.randint(0, 59)
+                return
